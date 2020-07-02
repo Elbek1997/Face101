@@ -8,3 +8,4 @@ Recent repos to implement:
 
 Dataset:
 1. [Celebrity Dataset](https://github.com/prateekmehta59/Celebrity-Face-Recognition-Dataset) - Dataset for Celebrity Face Recognition
+1. [CelebA](http://mmlab.ie.cuhk.edu.hk/projects/CelebA.html) - Dataset with many attributes, face recognition is also possible
