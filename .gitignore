@@ -137,5 +137,6 @@ dmypy.json
 # Cython debug symbols
 cython_debug/
 
-# MobileFaceNet_TF
-MobileFaceNet_TF/
+# MobileFaceNet_TF ignores
+MobileFaceNet_TF/output
+MobileFaceNet_TF/datasets
