@@ -140,3 +140,6 @@ cython_debug/
 # MobileFaceNet_TF ignores
 MobileFaceNet_TF/output
 MobileFaceNet_TF/datasets
+
+# VsCode files
+.vscode/
