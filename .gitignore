@@ -136,3 +136,12 @@ dmypy.json
 
 # Cython debug symbols
 cython_debug/
+
+# Datasets
+datasets/
+
+# Training log
+ckpt/
+ckpt_best/
+logs/
+summary/
