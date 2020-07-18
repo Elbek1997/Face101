@@ -27,7 +27,10 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
+
+from tensorflow.python.framework import dtypes
 from tensorflow.python.framework import graph_util
+from tensorflow.python.tools import optimize_for_inference_lib
 from six.moves import xrange
 import tensorflow as tf
 import argparse
@@ -79,14 +82,14 @@ def main(args):
             input_graph_def = sess.graph.as_graph_def()
             
             # Freeze the graph def
-            output_graph_def = freeze_graph_def(sess, input_graph_def, 'embeddings')
+            output_graph_def = freeze_graph_def(sess, input_graph_def, args.input_names.split(","), args.output_names.split(","))
 
         # Serialize and dump the output graph to the filesystem
         with tf.gfile.GFile(args.output_file, 'wb') as f:
             f.write(output_graph_def.SerializeToString())
         print("%d ops in the final graph: %s" % (len(output_graph_def.node), args.output_file))
         
-def freeze_graph_def(sess, input_graph_def, output_node_names):
+def freeze_graph_def(sess, input_graph_def, input_node_names, output_node_names):
     for node in input_graph_def.node:
         if node.op == 'RefSwitch':
             node.op = 'Switch'
@@ -108,8 +111,15 @@ def freeze_graph_def(sess, input_graph_def, output_node_names):
 
     # Replace all the variables in the graph with constants of the same values
     output_graph_def = graph_util.convert_variables_to_constants(
-        sess, input_graph_def, output_node_names.split(","),
+        sess, input_graph_def, output_node_names,
         variable_names_whitelist=whitelist_names)
+
+    output_graph_def = optimize_for_inference_lib.optimize_for_inference(
+        output_graph_def,
+        input_node_names,
+        output_node_names,
+        dtypes.float32.as_datatype_enum
+    )
     return output_graph_def
   
 def parse_arguments(argv):
@@ -119,6 +129,11 @@ def parse_arguments(argv):
         help='Directory containing the metagraph (.meta) file and the checkpoint (ckpt) file containing model parameters')
     parser.add_argument('--output_file', type=str, 
         help='Filename for the exported graphdef protobuf (.pb)')
+    parser.add_argument("--input_names", type=str,
+        default="img_inputs", help="Input node names, comma separated. ")
+    parser.add_argument("--output_names", type=str,
+        default="embeddings", help="Output node names, comma separated. ")
+
     return parser.parse_args(argv)
 
 if __name__ == '__main__':
