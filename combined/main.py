@@ -1,6 +1,8 @@
 from library.face_detection import *
 from library.face_identification import *
 
+from os import listdir
+
 import time
 # Face detector
 face_detector = Face_Detector()
@@ -8,20 +10,18 @@ face_detector = Face_Detector()
 # Face identification
 face_identification = Face_Identification()
 
+names = ["dinesh", "erlic", "gilfoyle", "richard"]
 
-image = cv2.imread("test.jpg")
+embeddings = [ face_identification.generate_embeddings(cv2.imread("database/%s.png" % name))  for name in names]
 
-faces = face_detector.detect_image(image)
 
-# for face in faces:
+
+
     
-#     embeddings = face_identification.generate_embeddings(face)
-#     print(face.shape, embeddings)
 
-face_identification.generate_embeddings(faces[-1])
 
-start_time = time.time()
-face_identification.generate_embeddings(faces[0])
-print("%s seconds\n" % (time.time() - start_time) )
+
+
+
 
 

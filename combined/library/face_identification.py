@@ -2,6 +2,11 @@ import numpy as np
 import cv2
 import tensorflow as tf
 
+# For triplet loss
+from tensorflow.python.ops import array_ops
+from tensorflow.python.ops import math_ops
+from tensorflow.python.framework import dtypes
+
 def load_graph(frozen_graph_filename):
     # We load the protobuf file from the disk and parse it to retrieve the 
     # unserialized graph_def
@@ -15,6 +20,9 @@ def load_graph(frozen_graph_filename):
         # Since we load everything in a new graph, this is not needed
         tf.import_graph_def(graph_def, name="prefix")
     return graph
+
+def pairwise_distance(embeddings_1, embedding_2):
+    return np.sqrt(np.average(np.square(embedding_2- embeddings_1)))
 
 
 class Face_Identification:
