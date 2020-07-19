@@ -3,6 +3,8 @@ import cv2
 import tensorflow as tf
 from scipy.spatial import distance
 
+from sklearn.metrics import pairwise_distances as sk_pairwise_distances
+
 # For triplet loss
 from tensorflow.python.ops import array_ops
 from tensorflow.python.ops import math_ops
@@ -23,50 +25,57 @@ def load_graph(frozen_graph_filename):
     return graph
 
 def pairwise_distance(embedding_1, embedding_2):
-    return distance.cosine(embedding_1, embedding_2)
+    # return distance.cosine(embedding_1, embedding_2)
+    return sk_pairwise_distances([embedding_1, embedding_2])[0][1]
 
 
 class Face_Identification:
 
-    def __init__(self, graph_filename="models/embeddings/trained_model.pb", 
-        image_input_name="prefix/img_inputs:0", embeddings_name="prefix/embeddings:0", gpu=True):
+    def __init__(self, graph_filename="models/embeddings/trained_model.pb"):
         
         # Load graph
-        self.graph = load_graph(graph_filename)
+        self.net = cv2.dnn.readNetFromTensorflow(graph_filename)
 
-        #region Session
-        if gpu:
-            sess = tf.Session(graph=self.graph)
-        
-        else:
-            config = tf.ConfigProto(device_count={'GPU': 0})
-            sess = tf.Session(graph=self.graph, config=config)
+    def generate_embeddings(self, images):
 
-        self.session = sess
-        #endregion
-        
-        # Input/output tensor
-        self.image_input = self.graph.get_tensor_by_name(image_input_name)
-        self.embeddings = self.graph.get_tensor_by_name(embeddings_name)
+        # Resize and BGR to RGB
+        images_input = np.asarray(
+            [cv2.cvtColor(cv2.resize(image, (112, 112), 1.0), cv2.COLOR_BGR2RGB) for image in images])
+
+        # Pre process
+        images_input = (images_input.astype("float32") - 127.5)/128.0
+
+        # Transpose
+        images_input = images_input.transpose((0, 3, 1, 2))
+
+        self.net.setInput(images_input, 'img_inputs')
+
+        out = self.net.forward()
+
+        return out
 
 
-    def generate_embeddings(self, image):
+    def generate_embedding(self, image):
 
         # Resize image 112x112
         image = cv2.resize(image, (112, 112), 1.0)
 
-        # BGR to RGB
-        image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB).astype("float32")
+        # Swap BGR to RGB
+        image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
 
-        # Subtract 127.5 and divide by 128
-        image = (image - 127.5) / 128.0
+        # Pre process
+        image = (image.astype("float32") - 127.5)/128.0
 
-        # Resize with 1 batch size
+        # Set 1 batch size
         image = np.reshape(image, (1, 112, 112, 3))
 
-        # Embeddings
-        embeddings = self.session.run(self.embeddings, feed_dict={self.image_input: image})[0]
+        # Transpose
+        image = image.transpose((0, 3, 1, 2))
 
-        return embeddings
+        self.net.setInput(image, 'img_inputs')
+
+        out = self.net.forward()
+
+        return out[0]
 
 

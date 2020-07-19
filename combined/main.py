@@ -12,21 +12,31 @@ face_identification = Face_Identification()
 
 names = ["dinesh", "erlic", "gilfoyle", "richard", "jared"]
 
-database = [ face_identification.generate_embeddings(cv2.imread("database/%s.png" % name))  for name in names]
+images = [ cv2.imread("database/%s.png" % name) for name in names]
+
+database = face_identification.generate_embeddings(images)
 
 test_image = cv2.imread("test.jpg")
 
 faces = face_detector.detect_image(test_image)
 
-for face in faces:
+positions = face_detector.detect_positions(test_image)
 
-    embedding = face_identification.generate_embeddings(face)
-    index = np.argmin([pairwise_distance(embedding, emb) for emb in database])
+start_time = time.time()
+
+embeddings = face_identification.generate_embeddings(faces)
+
+print("Faces: %s"%(time.time() - start_time))
+
+for embedding in embeddings:
+
+    distances = [pairwise_distance(embedding, emb) for emb in database]
+    index = np.argmin(distances)
     
     print("name: %s:, distance: %f" %
-          (names[index], 100*pairwise_distance(embedding, database[index])))
+          (names[index], pairwise_distance(embedding, database[index])))
 
-
+    print("distances:", distances)
 
 
 
