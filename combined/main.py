@@ -1,42 +1,81 @@
 from library.face_detection import *
 from library.face_identification import *
+from library.utils import *
 
 from os import listdir
+from os.path import splitext, join, isfile
 
-import time
-# Face detector
-face_detector = Face_Detector()
+from argparse import ArgumentParser
 
-# Face identification
-face_identification = Face_Identification()
+def main(args):
+      # Face detector
+      face_detector = Face_Detector()
 
-names = ["dinesh", "erlic", "gilfoyle", "richard", "jared"]
+      # Face identification
+      face_identification = Face_Identification()
 
-images = [ cv2.imread("database/%s.png" % name) for name in names]
+      # Database names
+      names = []
 
-database = face_identification.generate_embeddings(images)
+      # Images
+      images = []
+      
+      # Embeddings
+      database = []
 
-test_image = cv2.imread("test.jpg")
+      # Load database
+      for file in listdir(args.database):
+            
+            if file.endswith( ('.jpg', '.png', '.bmp') ) and isfile(join(args.database, file)):
 
-faces = face_detector.detect_image(test_image)
+                  names.append(splitext(file)[0])
+                  images.append(cv2.imread(join(args.database, file)))
 
-positions = face_detector.detect_positions(test_image)
+      
+      database = face_identification.generate_embeddings(images)
 
-start_time = time.time()
+      test_image = cv2.imread(args.input)
 
-embeddings = face_identification.generate_embeddings(faces)
+      # Detect face positions
+      positions = face_detector.detect_positions(test_image)
 
-print("Faces: %s"%(time.time() - start_time))
+      # Generate embeddings
+      embeddings = face_identification.generate_embeddings([ test_image[startY:endY, startX:endX] for (startX, startY, endX, endY) in positions])
 
-for embedding in embeddings:
 
-    distances = [pairwise_distance(embedding, emb) for emb in database]
-    index = np.argmin(distances)
-    
-    print("name: %s:, distance: %f" %
-          (names[index], pairwise_distance(embedding, database[index])))
+      for position, embedding in zip(positions, embeddings):
 
-    print("distances:", distances)
+            # Draw rectangle
+            test_image = drawRectangle(test_image, position)
+            
+            # Generate distances
+            distances = [ pairwise_distance(emb, embedding) for emb in database]
+            
+            # Find min index
+            index = np.argmin(distances)
+
+            txt = "%s_%.2f" % (names[index], 1 - distances[index])
+
+            # Draw name
+            test_image = drawString(test_image, txt, (position[0], position[1]-10))
+            
+      
+      cv2.imwrite(args.output, test_image)
+
+
+
+parser = ArgumentParser()
+
+parser.add_argument("--database", type=str, default="database", help="Path to database")
+
+parser.add_argument("--input", type=str, default="./test.jpg", help="Path to input image")
+
+parser.add_argument("--output", type=str, default="./out.jpg", help="Path to output image")
+
+args = parser.parse_args()
+
+main(args)
+
 
 
 

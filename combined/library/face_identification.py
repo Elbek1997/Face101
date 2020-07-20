@@ -58,21 +58,21 @@ class Face_Identification:
     def generate_embedding(self, image):
 
         # Resize image 112x112
-        image = cv2.resize(image, (112, 112), 1.0)
+        image_input = cv2.resize(image, (112, 112), 1.0)
 
         # Swap BGR to RGB
-        image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+        image_input = cv2.cvtColor(image_input, cv2.COLOR_BGR2RGB)
 
         # Pre process
-        image = (image.astype("float32") - 127.5)/128.0
+        image_input = (image_input.astype("float32") - 127.5)/128.0
 
         # Set 1 batch size
-        image = np.reshape(image, (1, 112, 112, 3))
+        image_input = np.reshape(image_input, (1, 112, 112, 3))
 
         # Transpose
-        image = image.transpose((0, 3, 1, 2))
+        image_input = image_input.transpose((0, 3, 1, 2))
 
-        self.net.setInput(image, 'img_inputs')
+        self.net.setInput(image_input, 'img_inputs')
 
         out = self.net.forward()
 
