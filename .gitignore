@@ -143,3 +143,12 @@ MobileFaceNet_TF/datasets
 
 # VsCode files
 .vscode/
+
+# Dataset
+dataset/
+
+# Weights
+weights/
+
+# Log
+log/

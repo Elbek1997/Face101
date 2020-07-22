@@ -8,7 +8,8 @@ Author: aiboy.wei@outlook.com .
 
 from losses.face_losses import insightface_loss, cosineface_loss, combine_loss
 from utils.data_process import parse_function, load_data
-from nets.MobileFaceNet import inference
+# from nets.MobileFaceNet import inference
+from nets.L_Resnet_E_IR import get_resnet
 # from losses.face_losses import cos_loss
 from verification import evaluate
 from scipy.optimize import brentq
@@ -31,7 +32,7 @@ def get_parser():
     parser.add_argument('--class_number', type=int, required=True,
                         help='class number depend on your training datasets, MS1M-V1: 85164, MS1M-V2: 85742')
     parser.add_argument('--embedding_size', type=int,
-                        help='Dimensionality of the embedding.', default=128)
+                        help='Dimensionality of the embedding.', default=512)
     parser.add_argument('--weight_decay', default=5e-5, help='L2 weight regularization.')
     parser.add_argument('--lr_schedule', help='Number of epochs for learning rate piecewise.', default=[4, 7, 9, 11])
     parser.add_argument('--train_batch_size', default=90, help='batch size to train network')
@@ -49,7 +50,7 @@ def get_parser():
     parser.add_argument('--ckpt_best_path', default='./output/ckpt_best', help='the best ckpt file save path')
     parser.add_argument('--log_file_path', default='./output/logs', help='the ckpt file save path')
     parser.add_argument('--saver_maxkeep', default=50, help='tf.train.Saver max keep ckpt files')
-    #parser.add_argument('--buffer_size', default=10000, help='tf dataset api buffer size')
+    parser.add_argument('--buffer_size', default=10000, help='tf dataset api buffer size')
     parser.add_argument('--summary_interval', default=400, help='interval to save summary')
     parser.add_argument('--ckpt_interval', default=2000, help='intervals to save ckpt file')
     parser.add_argument('--validate_interval', default=2000, help='intervals to save ckpt file')
@@ -127,14 +128,15 @@ if __name__ == '__main__':
         # identity the input, for inference
         inputs = tf.identity(inputs, 'input')
 
-        prelogits, net_points = inference(inputs, bottleneck_layer_size=args.embedding_size, phase_train=phase_train_placeholder, weight_decay=args.weight_decay)
+        w_init_method = tf.contrib.layers.xavier_initializer(uniform=False)
+        prelogits = get_resnet(inputs, w_init=w_init_method, num_layers=50, trainable=True)
 
-        # record the network architecture
-        hd = open("./arch/txt/MobileFaceNet_Arch.txt", 'w')
-        for key in net_points.keys():
-            info = '{}:{}\n'.format(key, net_points[key].get_shape().as_list())
-            hd.write(info)
-        hd.close()
+        # # record the network architecture
+        # hd = open("./arch/txt/ResNet50_Arch.txt", 'w')
+        # for key in net_points.keys():
+        #     info = '{}:{}\n'.format(key, net_points[key].get_shape().as_list())
+        #     hd.write(info)
+        # hd.close()
 
         embeddings = tf.nn.l2_normalize(prelogits, 1, 1e-10, name='embeddings')
 
@@ -143,6 +145,7 @@ if __name__ == '__main__':
         prelogits_norm = tf.reduce_mean(tf.norm(tf.abs(prelogits) + eps, ord=args.prelogits_norm_p, axis=1))
         tf.add_to_collection(tf.GraphKeys.REGULARIZATION_LOSSES, prelogits_norm * args.prelogits_norm_loss_factor)
 
+        print("Embeddings shape:", tf.shape(embeddings))
         # inference_loss, logit = cos_loss(prelogits, labels, args.class_number)
         w_init_method = slim.initializers.xavier_initializer()
         if args.loss_type == 'insightface':
