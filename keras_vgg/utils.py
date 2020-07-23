@@ -20,7 +20,7 @@ def load_dataset(input_path, batch_size, width=112, height=112):
     
     dataset.prefetch(buffer_size=batch_size)
 
-    return dataset
+    return dataset.repeat()
 
 
 def parse_function(width=112, height=112):
