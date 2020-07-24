@@ -54,6 +54,8 @@ def main(args):
             # Find min index
             index = np.argmin(distances)
 
+            print(index, distances)
+
             txt = "%s_%.2f" % (names[index], 1 - distances[index])
 
             # Draw name

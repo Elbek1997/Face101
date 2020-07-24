@@ -26,8 +26,9 @@ def load_graph(frozen_graph_filename):
 
 def pairwise_distance(embedding_1, embedding_2):
     # return distance.cosine(embedding_1, embedding_2)
-    return sk_pairwise_distances([embedding_1, embedding_2])[0][1]
-
+    # return sk_pairwise_distances([embedding_1, embedding_2])[0][1]
+    
+    return np.linalg.norm(embedding_1 - embedding_2)
 
 class Face_Identification:
 
