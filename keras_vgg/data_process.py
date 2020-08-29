@@ -11,11 +11,17 @@ import cv2
 
 parser = ArgumentParser()
 
-parser.add_argument("--slice_size", type=int, default=16, help="Batch size for training")
+from joblib import Parallel, delayed
 
-parser.add_argument("--input_path", type=str, default="dataset/train", help="Path for input image")
 
-parser.add_argument("--output_path", type=str, default="dataset/tfrecords/train", help="Path for output path")
+
+parser.add_argument("--width", type=int, default=224, help="Image width")
+
+parser.add_argument("--height", type=int, default=224, help="Image height")
+
+parser.add_argument("--input_path", type=str, default="dataset/VGGFace2/train", help="Path for input image")
+
+parser.add_argument("--output_path", type=str, default="dataset/VGGFace2/tfrecords/train", help="Path for output path")
 
 
 args = parser.parse_args()
@@ -23,20 +29,18 @@ args = parser.parse_args()
 
 def load_image(path):
 
-    binary = None
+    image = cv2.imread(path)
 
-    with open(path, "rb") as f:
+    image = cv2.resize(image, (args.width, args.height))
 
-        binary = f.read()
-    
-    return binary
+    return cv2.imencode(".jpg", image)[1].tobytes()
+
 
 
 def write_tfrecord(folder, image_paths, name):
 
     label = int(folder[1:])
-
-    images = [ load_image(join(join(args.input_path, folder), path)) for path in image_paths ]
+    # label = int(folder)
 
     # Create dir if not exists
     if not exists(join(args.output_path, folder)):
@@ -45,8 +49,9 @@ def write_tfrecord(folder, image_paths, name):
     # Write tfRecord
     with tf.io.TFRecordWriter(join(join(args.output_path, folder), name)) as writer:
 
-        for img in images:
+        for path in tqdm(image_paths, desc="Processing %s"%(folder)):
 
+            img = load_image(join(join(args.input_path, folder), path))
 
             example = tf.train.Example(features=tf.train.Features(feature={
                 'image_raw': tf.train.Feature(bytes_list=tf.train.BytesList(value=[img])),
@@ -63,18 +68,13 @@ if not exists(args.output_path):
 # List folders
 folders = listdir(args.input_path)
 
-for i in tqdm(range(len(folders)), desc="Creating TFrecords"):
+# for i in tqdm(range(len(folders)), desc="Creating TFrecords"):
 
-    folder = folders[i]
+#     folder = folders[i]
 
-    images = listdir(join(args.input_path, folder))
+#     images = listdir(join(args.input_path, folder))
     
-    # Select slice_size*k (k is int) samples
-    images = images[: len(images)//args.slice_size * args.slice_size]
+#     write_tfrecord(folder, images, "t.tfrecord")
 
-    for i in range(len(images)//args.slice_size):
 
-        write_tfrecord(folder, images[ i*args.slice_size: (i+1)*args.slice_size ], "%02d.tfrecord"%(i+1))
-
-    
-
+Parallel(n_jobs=8)( delayed(write_tfrecord)(folders[i], listdir(join(args.input_path, folders[i])), "t.tfrecord") for i in range(len(folders)) )
